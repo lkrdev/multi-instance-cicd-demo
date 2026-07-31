@@ -1,3 +1,5 @@
 project_name: "multi-instance-cicd-demo"
 
-rule: F2 {}
+# LAMS
+# rule: F2 {}
+
