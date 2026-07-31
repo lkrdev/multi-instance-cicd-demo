@@ -1,0 +1,5 @@
+# Whitelist of Board names eligible for migration from Stage to Prod.
+# Looker internal database IDs differ across instances, so boards and their pinned items (Dashboards and Looks) are matched by Title.
+
+boards:
+  - "CICD Demo Board"

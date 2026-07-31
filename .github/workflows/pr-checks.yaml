@@ -1,0 +1,118 @@
+name: PR Checks & Validation Gates
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lams-lint:
+    name: LAMS LookML Style Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Run LAMS Style Linter
+        run: |
+          npx -y @looker/lams --reporting=yes
+
+  dev-lookml-validation:
+    name: Dev LookML Syntax & Unit Tests (Looker CLI)
+    runs-on: ubuntu-latest
+    needs: [lams-lint]
+    env:
+      LOOKER_DEV_BASE_URL: ${{ secrets.LOOKER_DEV_BASE_URL }}
+      LOOKER_DEV_CLIENT_ID: ${{ secrets.LOOKER_DEV_CLIENT_ID }}
+      LOOKER_DEV_CLIENT_SECRET: ${{ secrets.LOOKER_DEV_CLIENT_SECRET }}
+      LOOKER_PROJECT_ID: ${{ vars.LOOKER_PROJECT_ID || 'multi_instance_demo' }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Install Looker CLI
+        run: |
+          go install github.com/looker-open-source/looker-cli/cmd/looker-cli@latest
+
+      - name: Login and Setup Dev Mode Session on Dev
+        run: |
+          looker-cli session login \
+            --host "${{ env.LOOKER_DEV_BASE_URL }}" \
+            --client-id "${{ env.LOOKER_DEV_CLIENT_ID }}" \
+            --client-secret "${{ env.LOOKER_DEV_CLIENT_SECRET }}"
+
+          looker-cli session update_session '{"workspace_id":"dev"}' \
+            --token-file \
+            --host "${{ env.LOOKER_DEV_BASE_URL }}"
+
+      - name: Checkout PR Branch in Dev Mode
+        run: |
+          looker-cli project checkout "${{ env.LOOKER_PROJECT_ID }}" "${{ github.head_ref }}" \
+            --token-file \
+            --host "${{ env.LOOKER_DEV_BASE_URL }}"
+
+      - name: Validate LookML Project
+        run: |
+          looker-cli project validate "${{ env.LOOKER_PROJECT_ID }}" \
+            --token-file \
+            --host "${{ env.LOOKER_DEV_BASE_URL }}"
+
+      - name: Run LookML Unit Tests
+        run: |
+          looker-cli api project run_lookml_test "${{ env.LOOKER_PROJECT_ID }}" \
+            --token-file \
+            --host "${{ env.LOOKER_DEV_BASE_URL }}"
+
+  stage-impact-checks:
+    name: Stage Pre-Merge Content Impact (Looker CLI)
+    runs-on: ubuntu-latest
+    needs: [lams-lint]
+    env:
+      LOOKER_STAGE_BASE_URL: ${{ secrets.LOOKER_STAGE_BASE_URL }}
+      LOOKER_STAGE_CLIENT_ID: ${{ secrets.LOOKER_STAGE_CLIENT_ID }}
+      LOOKER_STAGE_CLIENT_SECRET: ${{ secrets.LOOKER_STAGE_CLIENT_SECRET }}
+      LOOKER_PROJECT_ID: ${{ vars.LOOKER_PROJECT_ID || 'multi_instance_demo' }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Install Looker CLI
+        run: |
+          go install github.com/looker-open-source/looker-cli/cmd/looker-cli@latest
+
+      - name: Login and Setup Dev Mode Session on Stage
+        run: |
+          looker-cli session login \
+            --host "${{ env.LOOKER_STAGE_BASE_URL }}" \
+            --client-id "${{ env.LOOKER_STAGE_CLIENT_ID }}" \
+            --client-secret "${{ env.LOOKER_STAGE_CLIENT_SECRET }}"
+
+          looker-cli session update_session '{"workspace_id":"dev"}' \
+            --token-file \
+            --host "${{ env.LOOKER_STAGE_BASE_URL }}"
+
+      - name: Checkout PR Branch on Stage
+        run: |
+          looker-cli project checkout "${{ env.LOOKER_PROJECT_ID }}" "${{ github.head_ref }}" \
+            --token-file \
+            --host "${{ env.LOOKER_STAGE_BASE_URL }}"
+
+      - name: Run Content Validator on Stage
+        run: |
+          looker-cli api content_validator run_content_validator \
+            --token-file \
+            --host "${{ env.LOOKER_STAGE_BASE_URL }}"

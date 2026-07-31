@@ -1,0 +1,4 @@
+# LookML style guide ignore patterns
+*.ignore.lookml
+*.ignore.lkml
+dashboards/*

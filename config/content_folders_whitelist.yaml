@@ -1,0 +1,6 @@
+# Whitelist of folder names within Looker's "Shared" space eligible for Looker CLI migration.
+# All entries are evaluated directly inside the root "Shared" folder.
+# Personal folders (/users/*) are strictly excluded.
+
+whitelist:
+  - "CICD Demo"

@@ -1,0 +1,73 @@
+name: Promote UDD Content & Boards (Looker CLI)
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for manual UDD & Board content promotion"
+        required: false
+        default: "Post-UAT sign-off content sync"
+
+jobs:
+  migrate-whitelisted-content:
+    name: Migrate Whitelisted Shared Folders & Boards to Prod
+    runs-on: ubuntu-latest
+    env:
+      LOOKER_STAGE_BASE_URL: ${{ secrets.LOOKER_STAGE_BASE_URL }}
+      LOOKER_STAGE_CLIENT_ID: ${{ secrets.LOOKER_STAGE_CLIENT_ID }}
+      LOOKER_STAGE_CLIENT_SECRET: ${{ secrets.LOOKER_STAGE_CLIENT_SECRET }}
+      LOOKER_PROD_BASE_URL: ${{ secrets.LOOKER_PROD_BASE_URL }}
+      LOOKER_PROD_CLIENT_ID: ${{ secrets.LOOKER_PROD_CLIENT_ID }}
+      LOOKER_PROD_CLIENT_SECRET: ${{ secrets.LOOKER_PROD_CLIENT_SECRET }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Install Looker CLI
+        run: |
+          go install github.com/looker-open-source/looker-cli/cmd/looker-cli@latest
+
+
+      - name: Export and Import Whitelisted Folders (Stage > Prod via Looker CLI)
+        run: |
+          mkdir -p ./content_export
+
+          # Login to Stage and export whitelisted folders
+          looker-cli session login \
+            --host "${{ env.LOOKER_STAGE_BASE_URL }}" \
+            --client-id "${{ env.LOOKER_STAGE_CLIENT_ID }}" \
+            --client-secret "${{ env.LOOKER_STAGE_CLIENT_SECRET }}"
+
+          FOLDERS=$(grep -E '^[[:space:]]*-' config/content_folders_whitelist.yaml | sed 's/^[[:space:]]*-[[:space:]]*//; s/"//g; s/'\''//g')
+
+          for FOLDER in $FOLDERS; do
+            echo "Exporting folder '$FOLDER' from Stage..."
+            looker-cli folder export "$FOLDER" \
+              --dir "./content_export/$FOLDER" \
+              --token-file \
+              --host "${{ env.LOOKER_STAGE_BASE_URL }}" || echo "Notice: folder $FOLDER not found on Stage"
+          done
+
+          # Login to Prod and import exported folders into Shared (folder ID 1)
+          looker-cli session login \
+            --host "${{ env.LOOKER_PROD_BASE_URL }}" \
+            --client-id "${{ env.LOOKER_PROD_CLIENT_ID }}" \
+            --client-secret "${{ env.LOOKER_PROD_CLIENT_SECRET }}"
+
+          for FOLDER in $FOLDERS; do
+            if [ -d "./content_export/$FOLDER" ]; then
+              echo "Importing folder '$FOLDER' into Prod Shared space..."
+              looker-cli folder import "./content_export/$FOLDER" 1 \
+                --token-file \
+                --host "${{ env.LOOKER_PROD_BASE_URL }}"
+            fi
+          done
+
+      - name: Execute Whitelisted Board Migration (via Looker CLI)
+        run: |
+          bash scripts/migrate_boards_cli.sh config/content_boards_whitelist.yaml
