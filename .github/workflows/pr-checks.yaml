@@ -28,7 +28,7 @@ jobs:
       LOOKER_DEV_BASE_URL: ${{ secrets.LOOKER_DEV_BASE_URL }}
       LOOKER_DEV_CLIENT_ID: ${{ secrets.LOOKER_DEV_CLIENT_ID }}
       LOOKER_DEV_CLIENT_SECRET: ${{ secrets.LOOKER_DEV_CLIENT_SECRET }}
-      LOOKER_PROJECT_ID: ${{ vars.LOOKER_PROJECT_ID || 'multi_instance_demo' }}
+      LOOKER_PROJECT_ID: ${{ vars.LOOKER_PROJECT_ID || 'multi_instance_cicd_demo' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -46,30 +46,35 @@ jobs:
         run: |
           looker-cli session login \
             --host "${{ env.LOOKER_DEV_BASE_URL }}" \
+            --port 443 \
             --client-id "${{ env.LOOKER_DEV_CLIENT_ID }}" \
             --client-secret "${{ env.LOOKER_DEV_CLIENT_SECRET }}"
 
           looker-cli session update_session '{"workspace_id":"dev"}' \
             --token-file \
-            --host "${{ env.LOOKER_DEV_BASE_URL }}"
+            --host "${{ env.LOOKER_DEV_BASE_URL }}" \
+            --port 443
 
       - name: Checkout PR Branch in Dev Mode
         run: |
           looker-cli project checkout "${{ env.LOOKER_PROJECT_ID }}" "${{ github.head_ref }}" \
             --token-file \
-            --host "${{ env.LOOKER_DEV_BASE_URL }}"
+            --host "${{ env.LOOKER_DEV_BASE_URL }}" \
+            --port 443
 
       - name: Validate LookML Project
         run: |
           looker-cli project validate "${{ env.LOOKER_PROJECT_ID }}" \
             --token-file \
-            --host "${{ env.LOOKER_DEV_BASE_URL }}"
+            --host "${{ env.LOOKER_DEV_BASE_URL }}" \
+            --port 443
 
       - name: Run LookML Unit Tests
         run: |
           looker-cli api project run_lookml_test "${{ env.LOOKER_PROJECT_ID }}" \
             --token-file \
-            --host "${{ env.LOOKER_DEV_BASE_URL }}"
+            --host "${{ env.LOOKER_DEV_BASE_URL }}" \
+            --port 443
 
   stage-impact-checks:
     name: Stage Pre-Merge Content Impact (Looker CLI)
@@ -79,7 +84,7 @@ jobs:
       LOOKER_STAGE_BASE_URL: ${{ secrets.LOOKER_STAGE_BASE_URL }}
       LOOKER_STAGE_CLIENT_ID: ${{ secrets.LOOKER_STAGE_CLIENT_ID }}
       LOOKER_STAGE_CLIENT_SECRET: ${{ secrets.LOOKER_STAGE_CLIENT_SECRET }}
-      LOOKER_PROJECT_ID: ${{ vars.LOOKER_PROJECT_ID || 'multi_instance_demo' }}
+      LOOKER_PROJECT_ID: ${{ vars.LOOKER_PROJECT_ID || 'multi_instance_cicd_demo' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -97,21 +102,25 @@ jobs:
         run: |
           looker-cli session login \
             --host "${{ env.LOOKER_STAGE_BASE_URL }}" \
+            --port 443 \
             --client-id "${{ env.LOOKER_STAGE_CLIENT_ID }}" \
             --client-secret "${{ env.LOOKER_STAGE_CLIENT_SECRET }}"
 
           looker-cli session update_session '{"workspace_id":"dev"}' \
             --token-file \
-            --host "${{ env.LOOKER_STAGE_BASE_URL }}"
+            --host "${{ env.LOOKER_STAGE_BASE_URL }}" \
+            --port 443
 
       - name: Checkout PR Branch on Stage
         run: |
           looker-cli project checkout "${{ env.LOOKER_PROJECT_ID }}" "${{ github.head_ref }}" \
             --token-file \
-            --host "${{ env.LOOKER_STAGE_BASE_URL }}"
+            --host "${{ env.LOOKER_STAGE_BASE_URL }}" \
+            --port 443
 
       - name: Run Content Validator on Stage
         run: |
           looker-cli api content_validator run_content_validator \
             --token-file \
-            --host "${{ env.LOOKER_STAGE_BASE_URL }}"
+            --host "${{ env.LOOKER_STAGE_BASE_URL }}" \
+            --port 443

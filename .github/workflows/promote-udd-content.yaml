@@ -32,7 +32,6 @@ jobs:
         run: |
           go install github.com/looker-open-source/looker-cli/cmd/looker-cli@latest
 
-
       - name: Export and Import Whitelisted Folders (Stage > Prod via Looker CLI)
         run: |
           mkdir -p ./content_export
@@ -40,6 +39,7 @@ jobs:
           # Login to Stage and export whitelisted folders
           looker-cli session login \
             --host "${{ env.LOOKER_STAGE_BASE_URL }}" \
+            --port 443 \
             --client-id "${{ env.LOOKER_STAGE_CLIENT_ID }}" \
             --client-secret "${{ env.LOOKER_STAGE_CLIENT_SECRET }}"
 
@@ -50,12 +50,14 @@ jobs:
             looker-cli folder export "$FOLDER" \
               --dir "./content_export/$FOLDER" \
               --token-file \
-              --host "${{ env.LOOKER_STAGE_BASE_URL }}" || echo "Notice: folder $FOLDER not found on Stage"
+              --host "${{ env.LOOKER_STAGE_BASE_URL }}" \
+              --port 443 || echo "Notice: folder $FOLDER not found on Stage"
           done
 
           # Login to Prod and import exported folders into Shared (folder ID 1)
           looker-cli session login \
             --host "${{ env.LOOKER_PROD_BASE_URL }}" \
+            --port 443 \
             --client-id "${{ env.LOOKER_PROD_CLIENT_ID }}" \
             --client-secret "${{ env.LOOKER_PROD_CLIENT_SECRET }}"
 
@@ -64,7 +66,8 @@ jobs:
               echo "Importing folder '$FOLDER' into Prod Shared space..."
               looker-cli folder import "./content_export/$FOLDER" 1 \
                 --token-file \
-                --host "${{ env.LOOKER_PROD_BASE_URL }}"
+                --host "${{ env.LOOKER_PROD_BASE_URL }}" \
+                --port 443
             fi
           done
 

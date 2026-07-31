@@ -41,11 +41,11 @@ flowchart TD
 
 ## Environment Matrix
 
-| Environment | Purpose | LookML Source / Trigger | Deployment Method | Instance Settings & Feature Parity | Database Warehouse |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Dev** | Feature development and experimentation | Personal developer branches | Looker IDE git checkout | Previews, Labs flags, and experimental features can be turned on for testing | Dev warehouse dataset |
-| **Stage** | UAT testing and pre-production validation | `main` branch (deployed on PR merge) | Advanced Deploy API | Must match Prod settings, enforced by CI drift checks | Staging / masked warehouse dataset |
-| **Prod** | Production analytics for end users | Semantic release tags (`v*.*.*`) | Advanced Deploy API | Production baseline configuration | Production warehouse dataset |
+| Environment | Purpose | Developer LookML Access | LookML Source / Trigger | Deployment Method | Instance Settings & Feature Parity | Database Warehouse |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Dev** | Feature development and experimentation | **Read / Write** (IDE feature branches & personal Dev Mode) | Personal developer branches | Looker IDE git checkout | Previews, Labs flags, and experimental features can be turned on for testing | Dev warehouse dataset |
+| **Stage** | UAT testing and pre-production validation | **No Write Access** (Read-only / UAT; automated via CI/CD) | `main` branch (deployed on PR merge) | Advanced Deploy API | Must match Prod settings, enforced by CI drift checks | Staging / masked warehouse dataset |
+| **Prod** | Production analytics for end users | **No Write Access** (Read-only / consumption; automated via CI/CD) | Semantic release tags (`v*.*.*`) | Advanced Deploy API | Production baseline configuration | Production warehouse dataset |
 
 ## CI/CD Validation & Testing Gates
 
@@ -145,6 +145,13 @@ Migration rules (`scripts/migrate_boards_cli.sh` via `looker-cli api`):
 
 ## Instance Settings Parity & Governance
 
+### Developer Access & LookML Governance
+
+To enforce release integrity and prevent manual drift:
+
+- **Dev**: Developers have full developer access to create feature branches, edit LookML in the IDE, and test in Development Mode.
+- **Stage & Prod**: Developers do **not** have write access to LookML in Stage or Prod. LookML updates are deployed exclusively by the automated `looker/ci` service account via GitHub Actions using the Advanced Deploy API (`deploy_ref_to_production`). Direct LookML edits, branch creation, and manual commits by developers are disabled in Stage and Prod.
+
 ### Settings Drift Detection
 
 Stage settings must match Prod to keep UAT reliable:
@@ -202,8 +209,8 @@ If an incident occurs in Production:
 
 ## Required GitHub Secrets
 
-| Secret Name | Description |
-| :--- | :--- |
-| `LOOKER_DEV_BASE_URL` / `LOOKER_DEV_CLIENT_ID` / `LOOKER_DEV_CLIENT_SECRET` | Dev instance `looker/ci` service account credentials |
-| `LOOKER_STAGE_BASE_URL` / `LOOKER_STAGE_CLIENT_ID` / `LOOKER_STAGE_CLIENT_SECRET` | Stage instance `looker/ci` service account credentials |
-| `LOOKER_PROD_BASE_URL` / `LOOKER_PROD_CLIENT_ID` / `LOOKER_PROD_CLIENT_SECRET` | Prod instance `looker/ci` service account credentials |
+| Secret Name | Description | Example / Format |
+| :--- | :--- | :--- |
+| `LOOKER_DEV_BASE_URL` / `LOOKER_DEV_CLIENT_ID` / `LOOKER_DEV_CLIENT_SECRET` | Dev instance `looker/ci` service account credentials | `dev.looker.com` or `googledemo2.cloud.looker.com` (host domain without `https://`) |
+| `LOOKER_STAGE_BASE_URL` / `LOOKER_STAGE_CLIENT_ID` / `LOOKER_STAGE_CLIENT_SECRET` | Stage instance `looker/ci` service account credentials | `stage.looker.com` (host domain without `https://`) |
+| `LOOKER_PROD_BASE_URL` / `LOOKER_PROD_CLIENT_ID` / `LOOKER_PROD_CLIENT_SECRET` | Prod instance `looker/ci` service account credentials | `prod.looker.com` (host domain without `https://`) |

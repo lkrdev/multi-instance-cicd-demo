@@ -112,30 +112,38 @@ All validation gates execute in Looker's `dev` workspace first before any code i
 Using Looker CLI ([looker-open-source/looker-cli](https://github.com/looker-open-source/looker-cli)):
 
 ```bash
+# Extract clean host (without https://) and use port 443 for Looker Cloud
+STAGE_HOST=$(echo "$LOOKER_STAGE_BASE_URL" | sed -e 's|^https\?://||' -e 's|/.*$||')
+
 # 1. Login and persist session token to token file
 looker-cli session login \
-  --host $LOOKER_STAGE_BASE_URL \
-  --client-id $LOOKER_STAGE_CLIENT_ID \
-  --client-secret $LOOKER_STAGE_CLIENT_SECRET
+  --host "$STAGE_HOST" \
+  --port 443 \
+  --client-id "$LOOKER_STAGE_CLIENT_ID" \
+  --client-secret "$LOOKER_STAGE_CLIENT_SECRET"
 
 # 2. Switch workspace to dev mode
 looker-cli session update_session '{"workspace_id":"dev"}' \
   --token-file \
-  --host $LOOKER_STAGE_BASE_URL
+  --host "$STAGE_HOST" \
+  --port 443
 
 # 3. Check out the PR branch from main on Stage
 looker-cli project checkout cicd_demo demo/delete-unused-measure \
   --token-file \
-  --host $LOOKER_STAGE_BASE_URL
+  --host "$STAGE_HOST" \
+  --port 443
 
 # 4. Run LookML validation and Content Validator in Dev Mode
 looker-cli project validate cicd_demo \
   --token-file \
-  --host $LOOKER_STAGE_BASE_URL
+  --host "$STAGE_HOST" \
+  --port 443
 
 looker-cli api content_validator run_content_validator \
   --token-file \
-  --host $LOOKER_STAGE_BASE_URL
+  --host "$STAGE_HOST" \
+  --port 443
 ```
 
 ### Merge to main for Stage Deployment
@@ -158,10 +166,13 @@ Once UAT is complete and approved:
    - Triggers and validates Persistent Derived Table (PDT) builds in Dev Mode to pre-warm warehouse tables and verify DDL execution.
 3. Only after all Dev Mode checks and PDT builds pass, deploys the release tag to Production:
    ```bash
+   PROD_HOST=$(echo "$LOOKER_PROD_BASE_URL" | sed -e 's|^https\?://||' -e 's|/.*$||')
+
    looker-cli api project deploy_ref_to_production cicd_demo \
      --ref tags/v1.0.0 \
      --token-file \
-     --host $LOOKER_PROD_BASE_URL
+     --host "$PROD_HOST" \
+     --port 443
    ```
 4. Only after the release deploy succeeds, automatically promotes whitelisted Shared folders and Boards strictly from **Stage > Prod** in the final release job (or on-demand via [.github/workflows/promote-udd-content.yaml](.github/workflows/promote-udd-content.yaml)).
 

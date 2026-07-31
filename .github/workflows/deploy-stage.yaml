@@ -12,7 +12,7 @@ jobs:
       LOOKER_STAGE_BASE_URL: ${{ secrets.LOOKER_STAGE_BASE_URL }}
       LOOKER_STAGE_CLIENT_ID: ${{ secrets.LOOKER_STAGE_CLIENT_ID }}
       LOOKER_STAGE_CLIENT_SECRET: ${{ secrets.LOOKER_STAGE_CLIENT_SECRET }}
-      LOOKER_PROJECT_ID: ${{ vars.LOOKER_PROJECT_ID || 'multi_instance_demo' }}
+      LOOKER_PROJECT_ID: ${{ vars.LOOKER_PROJECT_ID || 'multi_instance_cicd_demo' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -30,13 +30,15 @@ jobs:
         run: |
           looker-cli session login \
             --host "${{ env.LOOKER_STAGE_BASE_URL }}" \
+            --port 443 \
             --client-id "${{ env.LOOKER_STAGE_CLIENT_ID }}" \
             --client-secret "${{ env.LOOKER_STAGE_CLIENT_SECRET }}"
 
           looker-cli api project deploy_ref_to_production "${{ env.LOOKER_PROJECT_ID }}" \
             --ref "${{ github.sha }}" \
             --token-file \
-            --host "${{ env.LOOKER_STAGE_BASE_URL }}"
+            --host "${{ env.LOOKER_STAGE_BASE_URL }}" \
+            --port 443
 
   verify-settings-parity:
     name: Verify Stage vs Prod Settings Parity (Looker CLI Diff)
@@ -66,23 +68,27 @@ jobs:
         run: |
           looker-cli session login \
             --host "${{ env.LOOKER_STAGE_BASE_URL }}" \
+            --port 443 \
             --client-id "${{ env.LOOKER_STAGE_CLIENT_ID }}" \
             --client-secret "${{ env.LOOKER_STAGE_CLIENT_SECRET }}"
 
           looker-cli api config get_setting \
             --token-file \
-            --host "${{ env.LOOKER_STAGE_BASE_URL }}" | jq -S 'del(.host_url, .instance_config)' > stage_settings.json
+            --host "${{ env.LOOKER_STAGE_BASE_URL }}" \
+            --port 443 | jq -S 'del(.host_url, .instance_config)' > stage_settings.json
 
       - name: Export Prod Settings
         run: |
           looker-cli session login \
             --host "${{ env.LOOKER_PROD_BASE_URL }}" \
+            --port 443 \
             --client-id "${{ env.LOOKER_PROD_CLIENT_ID }}" \
             --client-secret "${{ env.LOOKER_PROD_CLIENT_SECRET }}"
 
           looker-cli api config get_setting \
             --token-file \
-            --host "${{ env.LOOKER_PROD_BASE_URL }}" | jq -S 'del(.host_url, .instance_config)' > prod_settings.json
+            --host "${{ env.LOOKER_PROD_BASE_URL }}" \
+            --port 443 | jq -S 'del(.host_url, .instance_config)' > prod_settings.json
 
       - name: Diff Stage and Prod Settings
         run: |
