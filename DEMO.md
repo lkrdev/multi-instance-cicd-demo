@@ -2,7 +2,7 @@
 
 Walkthrough showing how the multi-instance CI/CD pipeline catches breaking changes, enforces settings parity, and promotes code across Dev, Stage (UAT), and Prod.
 
-## 1. LookML Style Guide Linting (LAMS Rule F1)
+## 1. LookML Style Guide Linting (LAMS Rule F2)
 
 Demonstrates automated LookML style enforcement via [manifest.lkml](manifest.lkml) and LAMS (`@looker/look-at-me-sideways`).
 
@@ -17,18 +17,18 @@ dimension: is_adult {
 }
 ```
 
-2. Open a Pull Request. The `lams-lint` check fails and logs the violation directly to the GitHub Job Summary:
-   > `Rule F1: Field users.is_active is missing a description.`
+2. Open a Pull Request. The `lams-lint` check fails and logs the violation directly in the build output:
+   > `Rule F2: Field users.is_adult is missing a description.`
 
 ### Fix the Rule
 
 Add the description parameter and push:
 
 ```lookml
-dimension: is_active {
+dimension: is_adult {
   type: yesno
-  description: "Indicates whether the user account is active."
-  sql: ${age} > 18 ;;
+  description: "Indicates whether the user is 18 years of age or older."
+  sql: ${age} >= 18 ;;
 }
 ```
 

@@ -1,3 +1,3 @@
 project_name: "multi_instance_cicd_demo"
 
-rule: F1 {}
+rule: F2 {}
