@@ -2,7 +2,41 @@
 
 Walkthrough showing how the multi-instance CI/CD pipeline catches breaking changes, enforces settings parity, and promotes code across Dev, Stage (UAT), and Prod.
 
-## Breaking Change Detection via PR
+## 1. LookML Style Guide Linting (LAMS Rule F1)
+
+Demonstrates automated LookML style enforcement via [manifest.lkml](manifest.lkml) and LAMS (`@looker/look-at-me-sideways`).
+
+### Break the Rule (Demo)
+
+1. On a feature branch, add a dimension in [views/users.view.lkml](views/users.view.lkml) without a `description:` parameter:
+
+```lookml
+dimension: is_adult {
+  type: yesno
+  sql: ${age} >= 18 ;;
+}
+```
+
+2. Open a Pull Request. The `lams-lint` check fails and logs the violation directly to the GitHub Job Summary:
+   > `Rule F1: Field users.is_active is missing a description.`
+
+### Fix the Rule
+
+Add the description parameter and push:
+
+```lookml
+dimension: is_active {
+  type: yesno
+  description: "Indicates whether the user account is active."
+  sql: ${age} > 18 ;;
+}
+```
+
+The `lams-lint` gate immediately turns green.
+
+---
+
+## 2. Breaking Change Detection via PR
 
 This scenario demonstrates how automated CI validation catches breaking changes on Pull Requests before code reaches Stage or Production.
 
