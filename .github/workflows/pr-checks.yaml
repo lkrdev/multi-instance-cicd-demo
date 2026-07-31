@@ -18,7 +18,7 @@ jobs:
           node-version: 22
 
       - name: Run LAMS Style Linter
-        run: npx -y @looker/look-at-me-sideways@5 --output=lines
+        run: npx -y @looker/look-at-me-sideways@5 --reporting=no --output=lines
 
   dev-lookml-validation:
     name: Dev LookML Syntax & Unit Tests (Looker CLI)
