@@ -120,8 +120,8 @@ jobs:
 
       - name: Run Content Validator on Stage
         run: |
-          looker-cli api content_validator run_content_validator \
-            "{\"project_names\": [\"${{ env.LOOKER_PROJECT_ID }}\"]}" \
+          looker-cli api content content_validation \
+            --project_names "${{ env.LOOKER_PROJECT_ID }}" \
             --token-file \
             --host "${{ env.LOOKER_STAGE_BASE_URL }}" \
             --port 443
