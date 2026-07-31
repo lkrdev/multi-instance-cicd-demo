@@ -34,7 +34,7 @@ jobs:
             --client-id "${{ env.LOOKER_PROD_CLIENT_ID }}" \
             --client-secret "${{ env.LOOKER_PROD_CLIENT_SECRET }}"
 
-          looker-cli api session update_session '{"workspace_id":"dev"}' \
+          echo '{"workspace_id":"dev"}' | looker-cli api session update_session - \
             --token-file \
             --host "${{ env.LOOKER_PROD_BASE_URL }}" \
             --port 443

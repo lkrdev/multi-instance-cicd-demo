@@ -50,7 +50,7 @@ jobs:
             --client-id "${{ env.LOOKER_DEV_CLIENT_ID }}" \
             --client-secret "${{ env.LOOKER_DEV_CLIENT_SECRET }}"
 
-          looker-cli api session update_session '{"workspace_id":"dev"}' \
+          echo '{"workspace_id":"dev"}' | looker-cli api session update_session - \
             --token-file \
             --host "${{ env.LOOKER_DEV_BASE_URL }}" \
             --port 443
@@ -106,7 +106,7 @@ jobs:
             --client-id "${{ env.LOOKER_STAGE_CLIENT_ID }}" \
             --client-secret "${{ env.LOOKER_STAGE_CLIENT_SECRET }}"
 
-          looker-cli api session update_session '{"workspace_id":"dev"}' \
+          echo '{"workspace_id":"dev"}' | looker-cli api session update_session - \
             --token-file \
             --host "${{ env.LOOKER_STAGE_BASE_URL }}" \
             --port 443
