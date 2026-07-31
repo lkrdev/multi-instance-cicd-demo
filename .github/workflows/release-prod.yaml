@@ -56,6 +56,7 @@ jobs:
       - name: Run Content Validator in Dev Mode
         run: |
           looker-cli api content_validator run_content_validator \
+            "{\"project_names\": [\"${{ env.LOOKER_PROJECT_ID }}\"]}" \
             --token-file \
             --host "${{ env.LOOKER_PROD_BASE_URL }}" \
             --port 443

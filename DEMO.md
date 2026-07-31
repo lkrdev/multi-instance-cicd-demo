@@ -141,6 +141,7 @@ looker-cli project validate cicd_demo \
   --port 443
 
 looker-cli api content_validator run_content_validator \
+  '{"project_names": ["cicd_demo"]}' \
   --token-file \
   --host "$STAGE_HOST" \
   --port 443
