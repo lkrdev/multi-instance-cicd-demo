@@ -12,7 +12,7 @@ jobs:
       LOOKER_STAGE_BASE_URL: ${{ secrets.LOOKER_STAGE_BASE_URL }}
       LOOKER_STAGE_CLIENT_ID: ${{ secrets.LOOKER_STAGE_CLIENT_ID }}
       LOOKER_STAGE_CLIENT_SECRET: ${{ secrets.LOOKER_STAGE_CLIENT_SECRET }}
-      LOOKER_PROJECT_ID: ${{ vars.LOOKER_PROJECT_ID || 'multi_instance_cicd_demo' }}
+      LOOKER_PROJECT_ID: ${{ vars.LOOKER_PROJECT_ID || 'multi-instance-cicd-demo' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

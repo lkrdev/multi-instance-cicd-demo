@@ -222,7 +222,7 @@ Configure these secrets in your GitHub repository under **Settings > Secrets and
 | `LOOKER_PROD_BASE_URL` | Host domain of the Prod Looker instance | `prod.looker.com` (domain only, no `https://`) |
 | `LOOKER_PROD_CLIENT_ID` | API3 Client ID for the `looker/ci` service account on Prod | `7xY1zAbCdEfG` |
 | `LOOKER_PROD_CLIENT_SECRET` | API3 Client Secret for the `looker/ci` service account on Prod | `MnOpQr345678...` |
-| `LOOKER_PROJECT_ID` *(Variable)* | Project ID of the LookML project (optional repository variable) | Default: `multi_instance_cicd_demo` |
+| `LOOKER_PROJECT_ID` *(Variable)* | Project ID of the LookML project (optional repository variable) | Default: `multi-instance-cicd-demo` |
 
 > [!NOTE]
 > - **Host Format**: `LOOKER_*_BASE_URL` must contain only the hostname/domain (e.g. `googledemo2.cloud.looker.com`). Do not include `https://`, port numbers, or trailing slashes. All API traffic runs over HTTPS via standard port `443`.
