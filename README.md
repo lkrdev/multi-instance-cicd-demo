@@ -73,7 +73,7 @@ When a developer opens a pull request against `main`, GitHub Actions runs two pa
 - The `looker/ci` bot calls `validate_project` in Dev to catch syntax errors, missing references, and join issues.
 - Native LookML `test:` blocks run via `run_lookml_test` to verify dimension calculations and business logic assertions.
 - The `looker/ci` bot logs in and persists authentication using `looker-cli session login --token-file`.
-- Switches the CI session into Dev mode (`looker-cli session update_session '{"workspace_id":"dev"}' --token-file`).
+- Switches the CI session into Dev mode (`looker-cli api session update_session '{"workspace_id":"dev"}' --token-file`).
 - Checks out the PR branch from `main` (`looker-cli project checkout <project_id> <branch> --token-file`).
 - Runs the Content Validator in Dev Mode (`looker-cli api content_validator run_content_validator --token-file`) to catch broken Looks and Dashboards before code merges.
 - Runs explore queries against the staging warehouse connection to verify dialect compatibility.

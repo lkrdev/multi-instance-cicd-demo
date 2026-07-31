@@ -123,7 +123,7 @@ looker-cli session login \
   --client-secret "$LOOKER_STAGE_CLIENT_SECRET"
 
 # 2. Switch workspace to dev mode
-looker-cli session update_session '{"workspace_id":"dev"}' \
+looker-cli api session update_session '{"workspace_id":"dev"}' \
   --token-file \
   --host "$STAGE_HOST" \
   --port 443
