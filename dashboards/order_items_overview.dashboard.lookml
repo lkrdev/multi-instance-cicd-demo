@@ -9,7 +9,7 @@
       model: cicd
       explore: order_items
       type: single_value
-      fields: [order_items.delete_me]
+      fields: [order_items.count]
       limit: 500
       custom_color_enabled: true
       show_single_value_title: true

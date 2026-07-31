@@ -33,6 +33,13 @@ view: order_items {
     sql: ${TABLE}.sale_price ;;
   }
 
+  measure: total_sale_price {
+    type: sum
+    description: "Total sale price revenue across all order items."
+    value_format_name: usd
+    sql: ${sale_price} ;;
+  }
+
   dimension: status {
     type: string
     description: "Current order item fulfillment status (e.g. Complete, Shipped, Cancelled, Returned)."
@@ -73,17 +80,10 @@ view: order_items {
     description: "Total number of order items."
   }
 
-  measure: delete_me {
-    type: count
-    description: "Demo count measure intended for CI/CD breaking change validation."
-  }
-
-  measure: total_sale_price {
-    type: sum
-    description: "Total sale price revenue across all order items."
-    value_format_name: usd
-    sql: ${sale_price} ;;
-  }
+  # measure: delete_me {
+  #   type: count
+  #   description: "Demo count measure intended for CI/CD breaking change validation."
+  # }
 
   measure: average_sale_price {
     type: average
