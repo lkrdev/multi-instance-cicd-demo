@@ -2,6 +2,16 @@
 
 Deployment workflow, testing gates, and API automation across three Looker environments: Dev, Stage (UAT), and Prod.
 
+## Tools & Technologies
+
+| Tool | Purpose | Documentation / Repository |
+| :--- | :--- | :--- |
+| **Looker CLI (`looker-cli`)** | CLI for Looker API session management, branch checkouts, project validation, content validation, and deployment | [github.com/looker-open-source/looker-cli](https://github.com/looker-open-source/looker-cli) |
+| **LAMS (`@looker/look-at-me-sideways`)** | LookML style guide linter and rule validator (e.g. Rule F2 field descriptions) | [github.com/looker-open-source/look-at-me-sideways](https://github.com/looker-open-source/look-at-me-sideways) · [Docs](https://looker-open-source.github.io/look-at-me-sideways/) |
+| **Looker API 4.0** | REST API for Advanced Deploy, Content Validator, Settings parity, and PDT builds | [developers.looker.com/api/explorer/4.0](https://developers.looker.com/api/explorer/4.0) |
+| **GitHub Actions** | CI/CD automation pipelines for PR gates, Stage deployment, and Prod releases | [github.com/features/actions](https://github.com/features/actions) |
+| **jq** | Command-line JSON processor for Looker API response parsing and migration scripts | [jqlang.github.io/jq](https://jqlang.github.io/jq/) |
+
 ## Architecture Overview
 
 ```mermaid

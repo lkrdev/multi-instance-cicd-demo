@@ -38,6 +38,11 @@ view: users {
     sql: ${TABLE}.age ;;
   }
 
+  dimension: is_adult {
+    type: yesno
+    sql: ${age} >= 18 ;;
+  }
+
   dimension: gender {
     type: string
     description: "User gender."

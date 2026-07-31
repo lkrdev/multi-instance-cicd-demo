@@ -32,10 +32,10 @@ test: order_items_financial_measures {
 test: order_items_delete_me_has_rows {
   explore_source: order_items {
     column: delete_me_count {
-      field: order_items.count
+      field: order_items.delete_me
     }
   }
-  # assert: delete_me_is_positive {
-  #   expression: ${order_items.delete_me_count} > 0 ;;
-  # }
+  assert: delete_me_is_positive {
+    expression: ${order_items.delete_me_count} > 0 ;;
+  }
 }

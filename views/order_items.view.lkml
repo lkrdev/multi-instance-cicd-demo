@@ -80,10 +80,10 @@ view: order_items {
     description: "Total number of order items."
   }
 
-  # measure: delete_me {
-  #   type: count
-  #   description: "Demo count measure intended for CI/CD breaking change validation."
-  # }
+  measure: delete_me {
+    type: count
+    description: "Demo count measure intended for CI/CD breaking change validation."
+  }
 
   measure: average_sale_price {
     type: average
