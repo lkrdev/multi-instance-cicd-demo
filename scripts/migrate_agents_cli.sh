@@ -22,8 +22,8 @@ fi
 echo "Starting Conversational Analytics Agents Migration (Source > Target)..."
 
 # 1. Fetch Source and Target agents
-SOURCE_AGENTS_RAW=$(looker-cli api conversational_analytics search_agents --token-file --host "$SOURCE_HOST" --port "$LOOKER_PORT")
-TARGET_AGENTS_RAW=$(looker-cli api conversational_analytics search_agents --token-file --host "$TARGET_HOST" --port "$LOOKER_PORT")
+SOURCE_AGENTS_RAW=$(looker-cli api conversationalanalytics search_agents --token-file --host "$SOURCE_HOST" --port "$LOOKER_PORT")
+TARGET_AGENTS_RAW=$(looker-cli api conversationalanalytics search_agents --token-file --host "$TARGET_HOST" --port "$LOOKER_PORT")
 
 if ! echo "$SOURCE_AGENTS_RAW" | jq . >/dev/null 2>&1 || ! echo "$TARGET_AGENTS_RAW" | jq . >/dev/null 2>&1; then
   echo "Error: Failed to fetch agents from Source or Target, or received invalid JSON." >&2
@@ -56,7 +56,7 @@ while IFS= read -r AGENT_SUMMARY; do
   echo "Processing agent: '$AGENT_NAME' (Source ID: $SOURCE_AGENT_ID)..."
 
   # Fetch full agent data from Source to access golden_queries array and details
-  SOURCE_AGENT_FULL=$(looker-cli api conversational_analytics get_agent "$SOURCE_AGENT_ID" --token-file --host "$SOURCE_HOST" --port "$LOOKER_PORT" 2>/dev/null || echo "$AGENT_SUMMARY")
+  SOURCE_AGENT_FULL=$(looker-cli api conversationalanalytics get_agent "$SOURCE_AGENT_ID" --token-file --host "$SOURCE_HOST" --port "$LOOKER_PORT" 2>/dev/null || echo "$AGENT_SUMMARY")
 
   # Resolve each golden query using get_agent data and create_golden_query on Target
   TARGET_GQIDS=()
@@ -81,7 +81,7 @@ while IFS= read -r AGENT_SUMMARY; do
       questions: (.questions // [])
     }')
 
-    if CREATE_GQ_RESP=$(echo "$GQ_PAYLOAD" | looker-cli api conversational_analytics create_golden_query - --token-file --host "$TARGET_HOST" --port "$LOOKER_PORT" 2>/dev/null); then
+    if CREATE_GQ_RESP=$(echo "$GQ_PAYLOAD" | looker-cli api conversationalanalytics create_golden_query - --token-file --host "$TARGET_HOST" --port "$LOOKER_PORT" 2>/dev/null); then
       NEW_TARGET_GQID=$(echo "$CREATE_GQ_RESP" | jq -r '.id // empty' 2>/dev/null || true)
       if [ -n "$NEW_TARGET_GQID" ]; then
         echo "  Created golden query on Target: ID $NEW_TARGET_GQID (from Source golden query ID $GQ_ID)."
@@ -108,7 +108,7 @@ while IFS= read -r AGENT_SUMMARY; do
 
   if [ -n "$TARGET_AGENT_EXISTS" ]; then
     echo "Found mapped Target agent (ID: $MAPPED_TARGET_ID). Updating via PATCH..."
-    if UPDATE_OUTPUT=$(echo "$PAYLOAD" | looker-cli api conversational_analytics update_agent "$MAPPED_TARGET_ID" - --token-file --host "$TARGET_HOST" --port "$LOOKER_PORT" 2>&1); then
+    if UPDATE_OUTPUT=$(echo "$PAYLOAD" | looker-cli api conversationalanalytics update_agent "$MAPPED_TARGET_ID" - --token-file --host "$TARGET_HOST" --port "$LOOKER_PORT" 2>&1); then
       echo "Successfully updated Agent '$AGENT_NAME' on Target (ID: $MAPPED_TARGET_ID)."
     else
       echo "Error updating Agent '$AGENT_NAME' on Target: $UPDATE_OUTPUT" >&2
@@ -116,7 +116,7 @@ while IFS= read -r AGENT_SUMMARY; do
     fi
   else
     echo "No existing Target mapping found for Source ID $SOURCE_AGENT_ID. Creating via POST..."
-    if CREATE_OUTPUT=$(echo "$PAYLOAD" | looker-cli api conversational_analytics create_agent - --token-file --host "$TARGET_HOST" --port "$LOOKER_PORT" 2>&1); then
+    if CREATE_OUTPUT=$(echo "$PAYLOAD" | looker-cli api conversationalanalytics create_agent - --token-file --host "$TARGET_HOST" --port "$LOOKER_PORT" 2>&1); then
       NEW_ID=$(echo "$CREATE_OUTPUT" | jq -r '.id // empty' 2>/dev/null || true)
       echo "Successfully created Agent '$AGENT_NAME' on Target (ID: ${NEW_ID:-unknown})."
       if [ -n "$NEW_ID" ]; then
