@@ -218,3 +218,11 @@ jobs:
       - name: Promote Whitelisted Boards (Stage > Prod via Looker CLI)
         run: |
           bash scripts/migrate_boards_cli.sh config/content_boards_whitelist.yaml
+
+      - name: Promote Conversational Analytics Agents (Stage > Prod via Looker CLI)
+        env:
+          LOOKER_SOURCE_BASE_URL: ${{ secrets.LOOKER_STAGE_BASE_URL }}
+          LOOKER_TARGET_BASE_URL: ${{ secrets.LOOKER_PROD_BASE_URL }}
+        run: |
+          bash scripts/migrate_agents_cli.sh config/content_agents_whitelist.yaml
+
