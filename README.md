@@ -1,8 +1,8 @@
-# Multi-Instance Looker CI/CD
+# Multi-instance Looker CI/CD
 
 Deployment workflow, testing gates, and API automation across three Looker environments: Dev, Stage (UAT), and Prod.
 
-## Tools & Technologies
+## Tools and technologies
 
 | Tool | Purpose | Documentation / Repository |
 | :--- | :--- | :--- |
@@ -12,7 +12,7 @@ Deployment workflow, testing gates, and API automation across three Looker envir
 | **GitHub Actions** | CI/CD automation pipelines for PR gates, Stage deployment, and Prod releases | [github.com/features/actions](https://github.com/features/actions) |
 | **jq** | Command-line JSON processor for Looker API response parsing and migration scripts | [jqlang.github.io/jq](https://jqlang.github.io/jq/) |
 
-## Architecture Overview
+## Architecture overview
 
 ```mermaid
 flowchart TD
@@ -49,7 +49,7 @@ flowchart TD
     UAT --> Release
 ```
 
-## Environment Matrix
+## Environment matrix
 
 | Environment | Purpose | Developer LookML Access | LookML Source / Trigger | Deployment Method | Instance Settings & Feature Parity | Database Warehouse |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -57,7 +57,7 @@ flowchart TD
 | **Stage** | UAT testing and pre-production validation | **No Write Access** (Read-only / UAT; automated via CI/CD) | `main` branch (deployed on PR merge) | Advanced Deploy API | Must match Prod settings, enforced by CI drift checks | Staging / masked warehouse dataset |
 | **Prod** | Production analytics for end users | **No Write Access** (Read-only / consumption; automated via CI/CD) | Semantic release tags (`v*.*.*`) | Advanced Deploy API | Production baseline configuration | Production warehouse dataset |
 
-## CI/CD Validation & Testing Gates
+## CI/CD validation and testing gates
 
 Validations run through the `looker/ci` bot service account with scoped workspace privileges.
 
@@ -75,20 +75,22 @@ Validations run through the `looker/ci` bot service account with scoped workspac
             └─────────────────────────┘         └───────────────────────┘
 ```
 
-### Pull Request to main (Dev & Stage Gates)
+### Pull request to main (Dev and Stage gates)
 
-When a developer opens a pull request against `main`, GitHub Actions runs two parallel validation suites:
+When a developer opens a pull request against `main`, GitHub Actions runs two validation tracks:
 
-- LAMS ([looker-open-source/look-at-me-sideways](https://github.com/looker-open-source/look-at-me-sideways)) runs `@looker/lams` against changed LookML files to verify naming conventions, primary keys, and description coverage.
-- The `looker/ci` bot calls `validate_project` in Dev to catch syntax errors, missing references, and join issues.
-- Native LookML `test:` blocks run via `run_lookml_test` to verify dimension calculations and business logic assertions.
-- The `looker/ci` bot logs in and persists authentication using `looker-cli session login --token-file`.
-- Switches the CI session into Dev mode (`echo '{"workspace_id":"dev"}' | looker-cli api session update_session - --token-file`).
-- Checks out the PR branch from `main` (`looker-cli project checkout <project_id> <branch> --token-file`).
-- Runs the Content Validator in Dev Mode (`looker-cli api content content_validation --project_names <project_id> --token-file`) to catch broken Looks and Dashboards before code merges.
+Dev and runner checks:
+- LAMS ([looker-open-source/look-at-me-sideways](https://github.com/looker-open-source/look-at-me-sideways)) lints changed LookML files for style rules, naming conventions, primary keys, and description coverage.
+- The `looker/ci` service account runs `validate_project` on Dev to catch syntax errors, broken references, and invalid joins.
+- Native LookML `test:` blocks run through `run_lookml_test` to verify calculations and dimension assertions.
+
+Stage pre-merge checks:
+- The bot logs in with `looker-cli session login --token-file` and switches its session to Dev mode (`echo '{"workspace_id":"dev"}' | looker-cli api session update_session - --token-file`).
+- Checks out the PR branch with `looker-cli project checkout <project_id> <branch> --token-file`.
+- Runs the Content Validator in Dev mode (`looker-cli api content content_validation --project_names <project_id> --token-file`) to catch broken Looks and dashboards before merge.
 - Runs explore queries against the staging warehouse connection to verify dialect compatibility.
 
-### Stage Promotion on Merge
+### Stage promotion on merge
 
 When the PR merges into `main`, GitHub Actions deploys the code to Stage:
 
@@ -96,27 +98,26 @@ When the PR merges into `main`, GitHub Actions deploys the code to Stage:
 - Compares Stage and Prod settings via `looker-cli api config get_setting` and `diff -u` to confirm settings parity.
 - Stakeholders and analysts run UAT against Stage knowing the environment configuration matches Production.
 
-### Production Release on Tag
+### Production release on tag
 
 When a release tag (`vX.Y.Z`) is created, GitHub Actions executes the release workflow on Prod ([.github/workflows/release-prod.yaml](.github/workflows/release-prod.yaml)):
 
 1. Switches Prod session to `dev` mode with `--token-file`.
 2. Checks out the release tag ref (`tags/vX.Y.Z`).
 3. Runs Content Validator and SQL validation in Dev mode against live production metadata.
-4. **Triggers and validates Persistent Derived Table (PDT) builds** in Dev mode to pre-warm warehouse tables and verify DDL execution before live traffic touches them.
-5. On passing all Dev Mode validations and PDT builds, deploys the release tag to Production:
+4. Triggers and validates Persistent Derived Table (PDT) builds in Dev mode to pre-warm warehouse tables and verify DDL execution before live traffic touches them.
+5. Deploys the release tag to Production once all Dev mode validations and PDT builds pass:
    `looker-cli api project deploy_ref_to_production <project_id> --ref tags/vX.Y.Z --token-file`
-6. **Verifies Stage vs Prod settings parity** via `looker-cli api config get_setting` and `diff -u` before migrating content.
-7. **Promotes whitelisted UDD content and Boards strictly from Stage to Production**:
-   This promotion step only runs after all production release validators, deploy, and settings parity checks succeed.
+6. Verifies Stage vs Prod settings parity via `looker-cli api config get_setting` and `diff -u` before migrating content.
+7. Promotes whitelisted UDD content, Boards, and Conversational Analytics Agents strictly from Stage to Production. This step runs only after all production release validators, deployment, and settings parity checks succeed.
 
-## UDD Content & Board Migration (Stage > Prod)
+## Content, board, and agent migration (Stage to Prod)
 
-LookML models and explores deploy through Git, while User-Defined Dashboards (UDDs), Looks, and Boards verified during Stage UAT migrate strictly from **Stage > Prod** using Looker CLI ([looker-open-source/looker-cli](https://github.com/looker-open-source/looker-cli)) and Looker SDK. Promotion is gated to run only after all production release validators pass.
+LookML models and explores deploy through Git, while User-Defined Dashboards (UDDs), Looks, Boards, and Conversational Analytics Agents verified during Stage UAT migrate from Stage to Prod using Looker CLI ([looker-open-source/looker-cli](https://github.com/looker-open-source/looker-cli)). Promotion runs only after all production release validations pass.
 
-Dev content is never promoted automatically. The Dev instance serves as a developer sandbox for rapid iteration and personal testing. To move dashboards from Dev into the release lifecycle, we recommend converting them into **LookML Dashboards** (`.dashboard.lookml` files) so they are version-controlled in Git and automatically deployed across all three instances. For one-off manual transfers, developers can run adhoc `looker-cli` commands (`looker-cli dashboard export <id>` and `looker-cli dashboard import <file>`).
+Dev content is never promoted automatically. The Dev instance is a developer sandbox for fast iteration and local testing. To bring dashboards from Dev into the release lifecycle, convert them to LookML Dashboards (`.dashboard.lookml` files) so they are version-controlled in Git and deploy across all environments. For one-off transfers, developers can run ad-hoc `looker-cli` commands (`looker-cli dashboard export <id>` and `looker-cli dashboard import <file>`).
 
-### Shared Folder Whitelist
+### Shared folder whitelist
 
 To keep personal folders and experimental UAT scratchpads out of Production, migrations only process folders listed in `config/content_folders_whitelist.yaml` (which always assumes Looker's root Shared folder):
 
@@ -136,7 +137,7 @@ Migration rules:
 - Folders are exported from Stage with `looker-cli folder export <folder_id> --dir ./content_export --host $LOOKER_STAGE_BASE_URL` and imported into Prod with `looker-cli folder import ./content_export/<folder_name> <prod_parent_id> --host $LOOKER_PROD_BASE_URL`.
 - The migration runs via `.github/workflows/promote-udd-content.yaml` on release or manual trigger.
 
-### Board Migration by Title
+### Board migration by title
 
 Because Looker internal database IDs differ across instances, Boards cannot be migrated by static IDs. Instead, `scripts/migrate_boards_cli.sh` resolves Board titles, sections, and pinned dashboards/looks across environments using `config/content_boards_whitelist.yaml`:
 
@@ -150,35 +151,60 @@ boards:
 Migration rules (`scripts/migrate_boards_cli.sh` via `looker-cli api`):
 
 - Queries Stage for the board by title and reads all sections and pinned items (`looker-cli api board search_boards` / `board`).
-- For each pinned dashboard or look, searches Production by title to resolve its corresponding Production ID (`looker-cli api dashboard search_dashboards`).
+- Searches Production by title for each pinned dashboard or look to resolve its corresponding Production ID (`looker-cli api dashboard search_dashboards`).
 - Creates or updates the Board and sections in Production and pins the resolved items (`looker-cli api board create_board_item`).
 
-## Instance Settings Parity & Governance
+### Conversational Analytics agent migration
 
-### Developer Access & LookML Governance
+Conversational Analytics agents and their associated golden queries use separate internal IDs across instances and can share duplicate names. `scripts/migrate_agents_cli.sh` synchronizes agents from Source to Target and tracks entity ID mappings in Looker's Artifact API (`ca_agent_migration` namespace) so agents update idempotently without modifying descriptions.
 
-To enforce release integrity and prevent manual drift:
+Migration rules (`scripts/migrate_agents_cli.sh` via `looker-cli api`):
 
-- **Dev**: Developers have full developer access to create feature branches, edit LookML in the IDE, and test in Development Mode.
-- **Stage & Prod**: Developers do **not** have write access to LookML in Stage or Prod. LookML updates are deployed exclusively by the automated `looker/ci` service account via GitHub Actions using the Advanced Deploy API (`deploy_ref_to_production`). Direct LookML edits, branch creation, and manual commits by developers are disabled in Stage and Prod.
+- Reads existing `agent_mapping` and `golden_query_mapping` artifacts from the Target instance.
+- Fetches active agents and their full definitions from Source (`search_agents` / `get_agent`).
+- Migrates any unmapped golden queries to Target with `create_golden_query` using questions and answers from the source agent, recording the new IDs in `golden_query_mapping`.
+- Upserts agents on Target using `update_agent` (PATCH) for mapped IDs or `create_agent` (POST) for new agents, updating `agent_mapping`.
+- Persists updated mapping artifacts to Target via `update_artifacts`.
 
-### Settings Drift Detection
+Running independently outside CI/CD:
+
+```bash
+# 1. Login to Source and Target instances:
+looker-cli session login --host "$LOOKER_STAGE_BASE_URL" --port 443 --client-id "$LOOKER_STAGE_CLIENT_ID" --client-secret "$LOOKER_STAGE_CLIENT_SECRET"
+looker-cli session login --host "$LOOKER_PROD_BASE_URL" --port 443 --client-id "$LOOKER_PROD_CLIENT_ID" --client-secret "$LOOKER_PROD_CLIENT_SECRET"
+
+# 2. Run the migration script:
+LOOKER_SOURCE_BASE_URL="$LOOKER_STAGE_BASE_URL" \
+LOOKER_TARGET_BASE_URL="$LOOKER_PROD_BASE_URL" \
+bash scripts/migrate_agents_cli.sh
+```
+
+## Instance settings parity and governance
+
+### Developer access and LookML governance
+
+To protect release integrity and prevent drift:
+
+- Dev developers have full access to create feature branches, edit LookML in the IDE, and test in Development Mode.
+- Stage and Prod developers do not have write access to LookML. The automated `looker/ci` service account deploys updates through GitHub Actions using the Advanced Deploy API (`deploy_ref_to_production`). Direct LookML edits, branch creation, and manual commits are disabled in Stage and Prod.
+
+### Settings drift detection
 
 Stage settings must match Prod to keep UAT reliable:
 
 - `looker-cli api config get_setting` exports settings from Stage and Prod to JSON files (`stage_settings.json` and `prod_settings.json`).
-- A standard `diff -u` compares both files, failing CI immediately if Labs flags, legacy features, or embed configurations diverge.
+- Standard `diff -u` compares both files, failing CI immediately if Labs flags, legacy features, or embed configurations diverge.
 - Runs on every Stage deployment ([.github/workflows/deploy-stage.yaml](.github/workflows/deploy-stage.yaml)) and as a scheduled daily check in [.github/workflows/check-settings-drift.yaml](.github/workflows/check-settings-drift.yaml).
 
-### Connection Configuration
+### Connection configuration
 
-All three instances define the same connection name (for example, `connection: "looker-private-demo"`). Each Looker Admin points that connection to the right backend warehouse:
+All three instances use the same connection name (for example, `connection: "looker-private-demo"`). Each Looker Admin points that connection to the appropriate warehouse:
 
 - Dev points to developer or scratch datasets.
 - Stage points to staging or masked datasets.
 - Prod points to production datasets.
 
-## Rollback & Hotfix Procedure
+## Rollback and hotfix procedure
 
 ```mermaid
 flowchart LR
@@ -191,9 +217,9 @@ flowchart LR
 If an incident occurs in Production:
 
 1. Re-deploy the last known good release tag (such as `v1.1.0`) to Prod using the Advanced Deploy API. This restores production in seconds without changing git history.
-2. Cut a hotfix branch from the tag or `main`, open a PR to run Dev and Stage validation, merge to Stage for a quick sanity check, and publish a new patch release tag (`v1.2.1`).
+2. Cut a hotfix branch from the tag or `main`, open a PR to run Dev and Stage validation, merge to Stage for sanity testing, and publish a new patch release tag (`v1.2.1`).
 
-## Project Structure
+## Project structure
 
 ```text
 ├── .github/
@@ -206,7 +232,8 @@ If an incident occurs in Production:
 │   ├── content_folders_whitelist.yaml # Whitelisted Shared folder names for Looker CLI
 │   └── content_boards_whitelist.yaml  # Whitelisted Board titles for title-based migration
 ├── scripts/
-│   └── migrate_boards_cli.sh         # Title-based Board migration script (Looker CLI API)
+│   ├── migrate_boards_cli.sh         # Title-based Board migration script (Looker CLI API)
+│   └── migrate_agents_cli.sh         # Conversational Analytics Agent & Golden Query migration script (Looker CLI API)
 ├── models/                           # LookML models
 ├── explores/                         # LookML explores
 ├── views/                            # LookML views
@@ -217,7 +244,7 @@ If an incident occurs in Production:
 └── README.md
 ```
 
-## Required GitHub Secrets & Configuration
+## Required GitHub secrets and configuration
 
 Configure these secrets in your GitHub repository under **Settings > Secrets and variables > Actions > Secrets**:
 
@@ -235,5 +262,5 @@ Configure these secrets in your GitHub repository under **Settings > Secrets and
 | `LOOKER_PROJECT_ID` *(Variable)* | Project ID of the LookML project (optional repository variable) | Default: `multi-instance-cicd-demo` |
 
 > [!NOTE]
-> - **Host Format**: `LOOKER_*_BASE_URL` must contain only the hostname/domain (e.g. `googledemo2.cloud.looker.com`). Do not include `https://`, port numbers, or trailing slashes. All API traffic runs over HTTPS via standard port `443`.
-> - **Service Account Permissions**: The `looker/ci` API service account on each instance requires permissions to enter Dev Mode (`develop`), validate LookML (`see_lookml`), run tests and PDTs (`deploy`, `see_pdts`), and deploy code via the Advanced Deploy API.
+> - Set `LOOKER_*_BASE_URL` to the hostname/domain only (e.g. `googledemo2.cloud.looker.com`). Do not include `https://`, port numbers, or trailing slashes. All API traffic runs over HTTPS via standard port `443`.
+> - The `looker/ci` API service account on each instance requires permissions to enter Dev Mode (`develop`), validate LookML (`see_lookml`), run tests and PDTs (`deploy`, `see_pdts`), and deploy code via the Advanced Deploy API.
