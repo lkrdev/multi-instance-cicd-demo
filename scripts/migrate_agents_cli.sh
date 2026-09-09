@@ -18,8 +18,8 @@ fi
 echo "Starting Conversational Analytics Agents Migration (Source > Target)..."
 
 # 1. Fetch Source and Target agents
-SOURCE_AGENTS_RAW=$(looker-cli api conversational_analytics search_agents --token-file --host "$SOURCE_HOST" --port "$LOOKER_PORT" 2>/dev/null || echo "[]")
-TARGET_AGENTS_RAW=$(looker-cli api conversational_analytics search_agents --token-file --host "$TARGET_HOST" --port "$LOOKER_PORT" 2>/dev/null || echo "[]")
+SOURCE_AGENTS_RAW=$(looker-cli api conversational_analytics search_agents --token-file --host "$SOURCE_HOST" --port "$LOOKER_PORT")
+TARGET_AGENTS_RAW=$(looker-cli api conversational_analytics search_agents --token-file --host "$TARGET_HOST" --port "$LOOKER_PORT")
 
 if ! echo "$SOURCE_AGENTS_RAW" | jq . >/dev/null 2>&1 || ! echo "$TARGET_AGENTS_RAW" | jq . >/dev/null 2>&1; then
   echo "Error: Failed to fetch agents from Source or Target, or received invalid JSON." >&2
@@ -82,7 +82,7 @@ while IFS= read -r AGENT_SUMMARY; do
       if [ -n "$NEW_TARGET_GQID" ]; then
         echo "  Created golden query on Target: ID $NEW_TARGET_GQID (from Source golden query ID $GQ_ID)."
         TARGET_GQIDS+=("$NEW_TARGET_GQID")
-        SOURCE_TO_TARGET_QUERY_MAP=$(echo "$SOURCE_TO_TARGET_QUERY_MAP" | jq -c --arg s "$GQ_ID" --argjson t "$NEW_TARGET_GQID" '.[$s] = ($t | tonumber)')
+        SOURCE_TO_TARGET_QUERY_MAP=$(echo "$SOURCE_TO_TARGET_QUERY_MAP" | jq -c --arg s "$GQ_ID" --arg t "$NEW_TARGET_GQID" '.[$s] = ($t | tonumber? // $t)')
         QUERY_MAP_MODIFIED=true
       fi
     else
@@ -91,7 +91,7 @@ while IFS= read -r AGENT_SUMMARY; do
   done < <(echo "$SOURCE_AGENT_FULL" | jq -c '.golden_queries[]? // empty')
 
   # Build payload
-  TARGET_GQIDS_JSON=$(printf '%s\n' "${TARGET_GQIDS[@]:-}" | jq -s '[.[] | select(length > 0) | tonumber]')
+  TARGET_GQIDS_JSON=$(jq -n '[$ARGS.positional[] | select(length > 0) | tonumber? // .]' --args "${TARGET_GQIDS[@]:-}")
   PAYLOAD=$(echo "$SOURCE_AGENT_FULL" | jq -c --argjson gq "$TARGET_GQIDS_JSON" '({name, description, sources, code_interpreter, category, context, workflow_params} + (if ($gq | length) > 0 then {golden_query_ids: $gq} else {} end)) | with_entries(select(.value != null))')
 
   # Check if this Source agent was already mapped to a Target agent ID
@@ -127,6 +127,7 @@ while IFS= read -r AGENT_SUMMARY; do
 done < <(echo "$SOURCE_AGENTS_RAW" | jq -c '.[] | select(.deleted != true)')
 
 # 4. Save updated Source->Target mappings back to Target Artifact API
+# Note: Looker OpenAPI schema defines Artifact.value as type: string; JSON payloads must be stored as serialized strings via --arg.
 ARTIFACT_UPDATES=()
 [ "$AGENT_MAP_MODIFIED" = "true" ] && ARTIFACT_UPDATES+=("$(jq -c -n --arg k "$ARTIFACT_AGENT_KEY" --arg v "$SOURCE_TO_TARGET_AGENT_MAP" --arg ver "$AGENT_MAP_VERSION" '{key: $k, value: $v, content_type: "application/json"} + (if ($ver | length) > 0 then {version: ($ver | tonumber)} else {} end)')")
 [ "$QUERY_MAP_MODIFIED" = "true" ] && ARTIFACT_UPDATES+=("$(jq -c -n --arg k "$ARTIFACT_QUERY_KEY" --arg v "$SOURCE_TO_TARGET_QUERY_MAP" --arg ver "$QUERY_MAP_VERSION" '{key: $k, value: $v, content_type: "application/json"} + (if ($ver | length) > 0 then {version: ($ver | tonumber)} else {} end)')")
@@ -135,8 +136,9 @@ if [ ${#ARTIFACT_UPDATES[@]} -gt 0 ]; then
   echo ""
   echo "Saving updated mapping artifact(s) to Target..."
   ARTIFACTS_PAYLOAD=$(printf '%s\n' "${ARTIFACT_UPDATES[@]}" | jq -s '.')
-  if ! echo "$ARTIFACTS_PAYLOAD" | looker-cli api artifact update_artifacts "$ARTIFACT_NAMESPACE" - --token-file --host "$TARGET_HOST" --port "$LOOKER_PORT" >/dev/null 2>&1; then
-    echo "Warning: Failed to save mapping artifacts to Target." >&2
+  if ! echo "$ARTIFACTS_PAYLOAD" | looker-cli api artifact update_artifacts "$ARTIFACT_NAMESPACE" - --token-file --host "$TARGET_HOST" --port "$LOOKER_PORT" >/dev/null; then
+    echo "Error: Failed to save mapping artifacts to Target. Exiting to prevent duplicate migrations." >&2
+    exit 1
   else
     echo "Successfully updated mapping artifact(s) on Target."
   fi
