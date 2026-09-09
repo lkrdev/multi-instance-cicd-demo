@@ -3,8 +3,12 @@ set -euo pipefail
 
 # Source-to-Target agent migration tracks Source->Target Agent and Golden Query ID mappings via Looker Artifact API, enabling clean description-free upserts and golden query creation from get_agent.
 
-SOURCE_HOST="${LOOKER_SOURCE_BASE_URL:-}"
-TARGET_HOST="${LOOKER_TARGET_BASE_URL:-}"
+SOURCE_HOST="${LOOKER_SOURCE_BASE_URL#*://}"
+SOURCE_HOST="${SOURCE_HOST%%/*}"
+SOURCE_HOST="${SOURCE_HOST%%:*}"
+TARGET_HOST="${LOOKER_TARGET_BASE_URL#*://}"
+TARGET_HOST="${TARGET_HOST%%/*}"
+TARGET_HOST="${TARGET_HOST%%:*}"
 LOOKER_PORT="${LOOKER_PORT:-443}"
 ARTIFACT_NAMESPACE="ca_agent_migration"
 ARTIFACT_AGENT_KEY="agent_mapping"
