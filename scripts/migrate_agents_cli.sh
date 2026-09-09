@@ -3,10 +3,12 @@ set -euo pipefail
 
 # Source-to-Target agent migration tracks Source->Target Agent and Golden Query ID mappings via Looker Artifact API, enabling clean description-free upserts and golden query creation from get_agent.
 
-SOURCE_HOST="${LOOKER_SOURCE_BASE_URL#*://}"
+SOURCE_HOST="${LOOKER_SOURCE_BASE_URL:-}"
+SOURCE_HOST="${SOURCE_HOST#*://}"
 SOURCE_HOST="${SOURCE_HOST%%/*}"
 SOURCE_HOST="${SOURCE_HOST%%:*}"
-TARGET_HOST="${LOOKER_TARGET_BASE_URL#*://}"
+TARGET_HOST="${LOOKER_TARGET_BASE_URL:-}"
+TARGET_HOST="${TARGET_HOST#*://}"
 TARGET_HOST="${TARGET_HOST%%/*}"
 TARGET_HOST="${TARGET_HOST%%:*}"
 LOOKER_PORT="${LOOKER_PORT:-443}"
@@ -22,7 +24,8 @@ if [ -n "$CONFIG_FILE" ]; then
     readarray -t WHITELIST < <(grep -E '^[[:space:]]*-' "$CONFIG_FILE" | sed 's/^[[:space:]]*-[[:space:]]*//; s/"//g; s/'\''//g')
     echo "Loaded ${#WHITELIST[@]} whitelisted agent(s) from $CONFIG_FILE."
   else
-    echo "Notice: Config file '$CONFIG_FILE' not found. Migrating all agents."
+    echo "Error: Config file '$CONFIG_FILE' specified but not found." >&2
+    exit 1
   fi
 fi
 
@@ -135,6 +138,8 @@ while IFS= read -r AGENT_SUMMARY; do
       if TARGET_QUERY_RESP=$(echo "$QUERY_PAYLOAD" | looker-cli api query create_query - --token-file --host "$TARGET_HOST" --port "$LOOKER_PORT" 2>/dev/null); then
         RESOLVED_URL=$(echo "$TARGET_QUERY_RESP" | jq -r '.share_url // .expanded_share_url // empty' 2>/dev/null || true)
         [ -n "$RESOLVED_URL" ] && TARGET_ANSWER="$RESOLVED_URL"
+      else
+        echo "  Warning: Failed to replicate query definition on Target for Source golden query ID $GQ_ID. Falling back to original answer URL." >&2
       fi
     fi
 
@@ -223,7 +228,14 @@ done < <(echo "$SOURCE_AGENTS_RAW" | jq -c '.[] | select(.deleted != true)')
 
 if [ ${#WHITELIST[@]} -gt 0 ]; then
   for ALLOWED in "${WHITELIST[@]}"; do
-    if [[ ! " ${MATCHED_AGENTS[*],,} " =~ [[:space:]]"${ALLOWED,,}"[[:space:]] ]]; then
+    FOUND=false
+    for MATCHED in "${MATCHED_AGENTS[@]:-}"; do
+      if [ "${MATCHED,,}" = "${ALLOWED,,}" ]; then
+        FOUND=true
+        break
+      fi
+    done
+    if [ "$FOUND" = "false" ]; then
       echo "Notice: Whitelisted agent '$ALLOWED' not found on Source."
     fi
   done

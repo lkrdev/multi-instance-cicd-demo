@@ -167,7 +167,7 @@ agents:
 
 Migration rules (`scripts/migrate_agents_cli.sh` via `looker-cli api`):
 
-- If a whitelist config file is passed (e.g. `config/content_agents_whitelist.yaml`), only listed agents are processed. If omitted or not found, all active agents are migrated.
+- If a whitelist config file is passed (e.g. `config/content_agents_whitelist.yaml`), only listed agents are processed (fails fast if a specified file is missing). If omitted, all active agents are migrated.
 - Reads existing `agent_mapping` and `golden_query_mapping` artifacts from the Target instance.
 - Fetches active agents and their full definitions from Source (`search_agents` / `get_agent`).
 - Migrates any unmapped golden queries to Target with `create_golden_query` using questions and answers from the source agent, recording the new IDs in `golden_query_mapping`.
