@@ -259,17 +259,17 @@ Configure these secrets in your GitHub repository under **Settings > Secrets and
 
 | Secret / Variable Name | Description | Example / Format |
 | :--- | :--- | :--- |
-| `LOOKER_DEV_BASE_URL` | Host domain of the Dev Looker instance | `googledemo2.cloud.looker.com` (domain only, no `https://`) |
-| `LOOKER_DEV_CLIENT_ID` | API3 Client ID for the `looker/ci` service account on Dev | `2x9hJkLmNpQr` |
+| `LOOKER_DEV_BASE_URL` | Host domain of the Dev Looker instance | `demo.looker.com` (domain only, no `https://`) |
+| `LOOKER_DEV_CLIENT_ID` | API3 Client ID for the `looker/ci` service account on Dev | `AbCdEf123456...` |
 | `LOOKER_DEV_CLIENT_SECRET` | API3 Client Secret for the `looker/ci` service account on Dev | `AbCdEf123456...` |
 | `LOOKER_STAGE_BASE_URL` | Host domain of the Stage Looker instance | `stage.looker.com` (domain only, no `https://`) |
-| `LOOKER_STAGE_CLIENT_ID` | API3 Client ID for the `looker/ci` service account on Stage | `4mN8pQrStUvW` |
-| `LOOKER_STAGE_CLIENT_SECRET` | API3 Client Secret for the `looker/ci` service account on Stage | `GhIjKl789012...` |
+| `LOOKER_STAGE_CLIENT_ID` | API3 Client ID for the `looker/ci` service account on Stage | `AbCdEf123456...` |
+| `LOOKER_STAGE_CLIENT_SECRET` | API3 Client Secret for the `looker/ci` service account on Stage | `AbCdEf123456...` |
 | `LOOKER_PROD_BASE_URL` | Host domain of the Prod Looker instance | `prod.looker.com` (domain only, no `https://`) |
-| `LOOKER_PROD_CLIENT_ID` | API3 Client ID for the `looker/ci` service account on Prod | `7xY1zAbCdEfG` |
-| `LOOKER_PROD_CLIENT_SECRET` | API3 Client Secret for the `looker/ci` service account on Prod | `MnOpQr345678...` |
+| `LOOKER_PROD_CLIENT_ID` | API3 Client ID for the `looker/ci` service account on Prod | `AbCdEf123456...` |
+| `LOOKER_PROD_CLIENT_SECRET` | API3 Client Secret for the `looker/ci` service account on Prod | `AbCdEf123456...` |
 | `LOOKER_PROJECT_ID` *(Variable)* | Project ID of the LookML project (optional repository variable) | Default: `multi-instance-cicd-demo` |
 
 > [!NOTE]
-> - Set `LOOKER_*_BASE_URL` to the hostname/domain only (e.g. `googledemo2.cloud.looker.com`). Do not include `https://`, port numbers, or trailing slashes. All API traffic runs over HTTPS via standard port `443`.
+> - Set `LOOKER_*_BASE_URL` to the hostname/domain only (e.g. `demo.looker.com`). Do not include `https://`, port numbers, or trailing slashes. All API traffic runs over HTTPS via standard port `443`.
 > - The `looker/ci` API service account on each instance requires permissions to enter Dev Mode (`develop`), validate LookML (`see_lookml`), run tests and PDTs (`deploy`, `see_pdts`), and deploy code via the Advanced Deploy API.
