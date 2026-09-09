@@ -1,0 +1,5 @@
+# Whitelist of Conversational Analytics Agent names eligible for migration from Stage to Prod.
+# Looker internal database IDs differ across instances, so agents are matched by name.
+
+agents:
+  - "eCommerce"

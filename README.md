@@ -156,27 +156,36 @@ Migration rules (`scripts/migrate_boards_cli.sh` via `looker-cli api`):
 
 ### Conversational Analytics agent migration
 
-Conversational Analytics agents and their associated golden queries use separate internal IDs across instances and can share duplicate names. `scripts/migrate_agents_cli.sh` synchronizes agents from Source to Target and tracks entity ID mappings in Looker's Artifact API (`ca_agent_migration` namespace) so agents update idempotently without modifying descriptions.
+Conversational Analytics agents and their associated golden queries use separate internal IDs across instances and can share duplicate names. `scripts/migrate_agents_cli.sh` synchronizes whitelisted agents from Source to Target and tracks entity ID mappings in Looker's Artifact API (`ca_agent_migration` namespace) so agents update idempotently without modifying descriptions.
+
+To prevent unvetted or in-progress agents from being promoted to Production, migrations only process agents listed in `config/content_agents_whitelist.yaml`:
+
+```yaml
+agents:
+  - "Ecommerce"
+```
 
 Migration rules (`scripts/migrate_agents_cli.sh` via `looker-cli api`):
 
+- If a whitelist config file is passed (e.g. `config/content_agents_whitelist.yaml`), only listed agents are processed. If omitted or not found, all active agents are migrated.
 - Reads existing `agent_mapping` and `golden_query_mapping` artifacts from the Target instance.
 - Fetches active agents and their full definitions from Source (`search_agents` / `get_agent`).
 - Migrates any unmapped golden queries to Target with `create_golden_query` using questions and answers from the source agent, recording the new IDs in `golden_query_mapping`.
 - Upserts agents on Target using `update_agent` (PATCH) for mapped IDs or `create_agent` (POST) for new agents, updating `agent_mapping`.
+- Deletes golden queries on Target via `delete_golden_query` and cleans up artifact mappings if they were removed from Source for that agent.
 - Persists updated mapping artifacts to Target via `update_artifacts`.
 
 Running independently outside CI/CD:
 
 ```bash
 # 1. Login to Source and Target instances:
-looker-cli session login --host "$LOOKER_STAGE_BASE_URL" --port 443 --client-id "$LOOKER_STAGE_CLIENT_ID" --client-secret "$LOOKER_STAGE_CLIENT_SECRET"
-looker-cli session login --host "$LOOKER_PROD_BASE_URL" --port 443 --client-id "$LOOKER_PROD_CLIENT_ID" --client-secret "$LOOKER_PROD_CLIENT_SECRET"
+looker-cli session login --host "$LOOKER_STAGE_BASE_URL" --client-id "$LOOKER_STAGE_CLIENT_ID" --client-secret "$LOOKER_STAGE_CLIENT_SECRET"
+looker-cli session login --host "$LOOKER_PROD_BASE_URL" --client-id "$LOOKER_PROD_CLIENT_ID" --client-secret "$LOOKER_PROD_CLIENT_SECRET"
 
 # 2. Run the migration script:
 LOOKER_SOURCE_BASE_URL="$LOOKER_STAGE_BASE_URL" \
 LOOKER_TARGET_BASE_URL="$LOOKER_PROD_BASE_URL" \
-bash scripts/migrate_agents_cli.sh
+bash scripts/migrate_agents_cli.sh config/content_agents_whitelist.yaml
 ```
 
 ## Instance settings parity and governance
@@ -230,7 +239,8 @@ If an incident occurs in Production:
 │       └── promote-udd-content.yaml  # On-demand Looker CLI migration of whitelisted Shared folders & Boards
 ├── config/
 │   ├── content_folders_whitelist.yaml # Whitelisted Shared folder names for Looker CLI
-│   └── content_boards_whitelist.yaml  # Whitelisted Board titles for title-based migration
+│   ├── content_boards_whitelist.yaml  # Whitelisted Board titles for title-based migration
+│   └── content_agents_whitelist.yaml  # Whitelisted Conversational Analytics agent names
 ├── scripts/
 │   ├── migrate_boards_cli.sh         # Title-based Board migration script (Looker CLI API)
 │   └── migrate_agents_cli.sh         # Conversational Analytics Agent & Golden Query migration script (Looker CLI API)
@@ -240,7 +250,6 @@ If an incident occurs in Production:
 ├── dashboards/                       # LookML dashboard definitions
 ├── .lamsignore                       # LAMS style guide ignore rules
 ├── DEMO.md                           # Interactive demo walkthrough
-├── GLOSSARY.md                       # CI/CD terminology and tooling glossary
 └── README.md
 ```
 
