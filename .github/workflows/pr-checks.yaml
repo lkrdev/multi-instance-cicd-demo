@@ -76,6 +76,18 @@ jobs:
             --host "${{ env.LOOKER_DEV_BASE_URL }}" \
             --port 443
 
+      - name: Verify LookML User Attributes on Dev
+        run: |
+          STATUS_FILE=dev_user_attributes_status.json \
+            bash scripts/check_user_attributes_cli.sh "${{ env.LOOKER_DEV_BASE_URL }}"
+
+      - name: Upload Dev User Attributes Status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-user-attributes-status
+          path: dev_user_attributes_status.json
+
   stage-impact-checks:
     name: Stage Pre-Merge Content Impact (Looker CLI)
     runs-on: ubuntu-latest
@@ -125,3 +137,15 @@ jobs:
             --token-file \
             --host "${{ env.LOOKER_STAGE_BASE_URL }}" \
             --port 443
+
+      - name: Verify LookML User Attributes on Stage
+        run: |
+          STATUS_FILE=stage_user_attributes_status.json \
+            bash scripts/check_user_attributes_cli.sh "${{ env.LOOKER_STAGE_BASE_URL }}"
+
+      - name: Upload Stage User Attributes Status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage-user-attributes-status
+          path: stage_user_attributes_status.json

@@ -30,8 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .lams/
 
-# Gazer temporary exports
+# Gazer & CI temporary exports
 content_export/
+*user_attributes_status.json
 .netrc
 
 # OS & IDE

@@ -40,8 +40,20 @@ jobs:
             --host "${{ env.LOOKER_STAGE_BASE_URL }}" \
             --port 443
 
+      - name: Verify LookML User Attributes on Stage
+        run: |
+          STATUS_FILE=stage_user_attributes_status.json \
+            bash scripts/check_user_attributes_cli.sh "${{ env.LOOKER_STAGE_BASE_URL }}"
+
+      - name: Upload Stage User Attributes Status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage-user-attributes-status
+          path: stage_user_attributes_status.json
+
   verify-settings-parity:
-    name: Verify Stage vs Prod Settings Parity (Looker CLI Diff)
+    name: Verify Stage vs Prod Settings & User Attribute Parity (Looker CLI Diff)
     runs-on: ubuntu-latest
     needs: [deploy-to-stage]
     env:
@@ -94,3 +106,15 @@ jobs:
         run: |
           echo "Comparing Stage vs Prod settings..."
           diff -u stage_settings.json prod_settings.json
+
+      - name: Verify LookML and Stage vs Prod User Attributes Parity
+        run: |
+          STATUS_FILE=stage_prod_user_attributes_status.json \
+            bash scripts/check_user_attributes_cli.sh "${{ env.LOOKER_PROD_BASE_URL }}" "${{ env.LOOKER_STAGE_BASE_URL }}"
+
+      - name: Upload Stage vs Prod User Attributes Status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage-prod-user-attributes-status
+          path: stage_prod_user_attributes_status.json
