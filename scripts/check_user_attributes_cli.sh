@@ -32,9 +32,9 @@ SOURCE_INPUT="${2:-${LOOKER_SOURCE_BASE_URL:-}}"
 STATUS_FILE="${STATUS_FILE:-user_attributes_status.json}"
 
 # ponytail: regex scan over .lkml/.lookml files; upgrade to full LookML AST parser if multiline block comments or dynamic attribute names are needed
-LOOKML_ATTRS=$((find "${LOOKML_DIR:-.}" \( -name '*.lkml' -o -name '*.lookml' \) -exec sed -E 's/^[[:space:]]*#.*//; s/;;[[:space:]]*#.*//' {} + 2>/dev/null \
+LOOKML_ATTRS=$( { find "${LOOKML_DIR:-.}" \( -name '*.lkml' -o -name '*.lookml' \) -exec sed -E 's/^[[:space:]]*#.*//; s/;;[[:space:]]*#.*//' {} + 2>/dev/null \
   | grep -oE "(user_attribute:[[:space:]]*['\"]?[a-zA-Z0-9_]+|_user_attributes\[[[:space:]]*['\"][a-zA-Z0-9_]+)" \
-  | sed -E "s/.*['\":[:space:]]([a-zA-Z0-9_]+)$/\1/" | sort -u || true) | jq -R 'select(length > 0)' | jq -s '.')
+  | sed -E "s/.*['\":[:space:]]([a-zA-Z0-9_]+)$/\1/" | sort -u || true; } | jq -R 'select(length > 0)' | jq -s '.')
 
 TARGET_ATTRS=$(fetch_attrs "$TARGET_INPUT")
 SOURCE_ATTRS="null"
@@ -69,5 +69,5 @@ jq -n \
   }' | tee "$STATUS_FILE"
 
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then printf '### User Attribute Diagnostics (`%s`)\n```json\n%s\n```\n' "$STATUS_FILE" "$(cat "$STATUS_FILE")" >> "$GITHUB_STEP_SUMMARY"; fi
-if [ "$SOURCE_ATTRS" != "null" ] && ! jq -e '.parity.in_sync' "$STATUS_FILE" >/dev/null; then diff -u <(echo "$SOURCE_ATTRS") <(echo "$TARGET_ATTRS") || true; fi
+if [ "$SOURCE_ATTRS" != "null" ] && ! jq -e '.parity.in_sync' "$STATUS_FILE" >/dev/null; then diff -u <(printf '%s\n' "$SOURCE_ATTRS") <(printf '%s\n' "$TARGET_ATTRS") || true; fi
 jq -e '.status == "pass"' "$STATUS_FILE" >/dev/null
