@@ -176,6 +176,18 @@ jobs:
           name: stage-prod-user-attributes-status
           path: stage_prod_user_attributes_status.json
 
+      - name: Verify Stage vs Prod Custom Visualizations Parity
+        run: |
+          STATUS_FILE=stage_prod_custom_visualizations_status.json \
+            bash scripts/check_custom_visualizations_cli.sh "${{ env.LOOKER_PROD_BASE_URL }}" "${{ env.LOOKER_STAGE_BASE_URL }}"
+
+      - name: Upload Stage vs Prod Custom Visualizations Status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage-prod-custom-visualizations-status
+          path: stage_prod_custom_visualizations_status.json
+
   promote-stage-content-to-prod:
     name: Promote Whitelisted UDDs & Boards (Stage > Prod)
     runs-on: ubuntu-latest

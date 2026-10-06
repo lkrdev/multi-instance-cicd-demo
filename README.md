@@ -197,13 +197,14 @@ To protect release integrity and prevent drift:
 - Dev developers have full access to create feature branches, edit LookML in the IDE, and test in Development Mode.
 - Stage and Prod developers do not have write access to LookML. The automated `looker/ci` service account deploys updates through GitHub Actions using the Advanced Deploy API (`deploy_ref_to_production`). Direct LookML edits, branch creation, and manual commits are disabled in Stage and Prod.
 
-### Settings and user attribute drift detection
+### Settings, user attribute, and custom visualization drift detection
 
-Stage settings and user attributes must match Prod to keep UAT and row-level security reliable:
+Stage settings, user attributes, and custom visualizations must match Prod to keep UAT, security, and dashboards reliable:
 
 - `looker-cli api config get_setting` exports settings from Stage and Prod to JSON files (`stage_settings.json` and `prod_settings.json`), failing CI via `diff -u` if Labs flags, legacy features, or embed configurations diverge.
 - `scripts/check_user_attributes_cli.sh` parses all LookML files (`*.lkml`, `*.lookml`) for referenced user attributes (`user_attribute:` declarations and `_user_attributes[...]` Liquid expressions), verifies they exist on the target instance via `looker-cli api userattribute all_user_attributes` across every promotion gate (`Dev > Stage > Prod`), and compares normalized Stage vs Prod user attribute definitions.
-- Each run outputs a diagnostic JSON status report (`*_user_attributes_status.json`) uploaded as a GitHub Actions workflow artifact and written to the job step summary.
+- `scripts/check_custom_visualizations_cli.sh` verifies custom visualization parity strictly between Stage and Prod. If a visualization is present on Stage but absent from Prod's API, it inspects `manifest.lkml` for `visualization: { id: ... }` declarations to recognize pending LookML deployments and prevent false alarms.
+- Each run outputs diagnostic JSON status reports (`*_user_attributes_status.json`, `*_custom_visualizations_status.json`) uploaded as GitHub Actions workflow artifacts and written to the job step summary.
 - Runs on Pull Requests ([.github/workflows/pr-checks.yaml](.github/workflows/pr-checks.yaml)), Stage deployments ([.github/workflows/deploy-stage.yaml](.github/workflows/deploy-stage.yaml)), and Production releases ([.github/workflows/release-prod.yaml](.github/workflows/release-prod.yaml)).
 
 ### Connection configuration
@@ -243,6 +244,7 @@ If an incident occurs in Production:
 │   ├── content_boards_whitelist.yaml  # Whitelisted Board titles for title-based migration
 │   └── content_agents_whitelist.yaml  # Whitelisted Conversational Analytics agent names
 ├── scripts/
+│   ├── check_custom_visualizations_cli.sh # Custom visualization Stage vs Prod parity & manifest fallback script
 │   ├── check_user_attributes_cli.sh  # LookML user attribute parser, instance verifier & parity diff script
 │   ├── migrate_boards_cli.sh         # Title-based Board migration script (Looker CLI API)
 │   └── migrate_agents_cli.sh         # Conversational Analytics Agent & Golden Query migration script (Looker CLI API)
