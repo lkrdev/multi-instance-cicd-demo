@@ -33,6 +33,7 @@ yarn-error.log*
 # Gazer & CI temporary exports
 content_export/
 *user_attributes_status.json
+*custom_visualizations_status.json
 .netrc
 
 # OS & IDE
